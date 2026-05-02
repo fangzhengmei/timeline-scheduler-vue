@@ -9,9 +9,9 @@
     :style="blockStyle"
     @mousedown="startDrag"
   >
-    <div class="resize-handle left" @mousedown.stop="startResize('left')"></div>
+    <div class="resize-handle left" @mousedown.stop="(e) => startResize('left', e)"></div>
     <span>{{ block.title }}</span>
-    <div class="resize-handle right" @mousedown.stop="startResize('right')"></div>
+    <div class="resize-handle right" @mousedown.stop="(e) => startResize('right', e)"></div>
   </div>
 </template>
 
@@ -126,7 +126,7 @@ function stopDrag() {
 }
 
 // 调整大小相关方法
-function startResize(direction) {
+function startResize(direction, event) {
   isResizing.value = true
   resizeDirection.value = direction
   startX.value = event.clientX
@@ -158,6 +158,7 @@ function handleResize(event) {
     
     emit('update:block', {
       id: props.block.id,
+      startTime: startBlock.value.startTime,
       endTime: new Date(newEndMs).toISOString()
     })
   } else if (resizeDirection.value === 'left') {
@@ -169,13 +170,19 @@ function handleResize(event) {
     newWidthPercent = Math.max(1, newWidthPercent)
     // 确保左侧不会超出容器
     newLeftPercent = Math.max(0, newLeftPercent)
+    // 同时确保右侧不会超出容器
+    if (newLeftPercent + newWidthPercent > 100) {
+      newWidthPercent = 100 - newLeftPercent
+    }
     
-    // 计算新的开始时间
+    // 计算新的开始和结束时间
     const newStartMs = viewStart + (newLeftPercent / 100) * totalMs
+    const newEndMs = viewStart + ((newLeftPercent + newWidthPercent) / 100) * totalMs
     
     emit('update:block', {
       id: props.block.id,
-      startTime: new Date(newStartMs).toISOString()
+      startTime: new Date(newStartMs).toISOString(),
+      endTime: new Date(newEndMs).toISOString()
     })
   }
 }
